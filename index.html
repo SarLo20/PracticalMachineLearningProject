@@ -378,17 +378,27 @@ devices.</p>
 </div>
 <div id="data-exploration" class="section level2">
 <h2>Data exploration</h2>
-<p>The training set consists of 19622 rows and 160 columns. It contains
-training data of 6 participants from accelerometers on the belt,
-forearm, arm, and dumbell. The participants had to do barbell lifts in 5
-different incorrect ways, which are specified in the variable “classe”
-(A,B,C,D,E).</p>
+<p>The training data set contains data of 6 participants from
+accelerometers on the belt, forearm, arm, and dumbell. The participants
+had to do barbell lifts in 5 different incorrect ways, which are
+specified in the variable “classe” (A,B,C,D,E).</p>
 </div>
 <div id="cleaning-the-data" class="section level2">
 <h2>Cleaning the data</h2>
-<p>The are several data points that are empty or have the value
-“#DIV/0!”. These are replaced by NA. Also columns with no information
-are dropped to increase clarity.</p>
+<p>The given test data set has several columns with no information (NA),
+these are dropped. Then the same columns are dropped from the training
+data set. Within the training data set all empty values or values equal
+“#DIV/0!” are replaced by NA. Afterwards only the feature values are
+selected and columns are converted to correct data types. The final step
+is to divide the data into a training (70%) and a validation (30%) data
+set. The training and validation data sets have now 53 columns (52
+features and the classification variable “classe”).</p>
+</div>
+<div id="random-forest" class="section level2">
+<h2>Random Forest</h2>
+</div>
+<div id="prediction" class="section level2">
+<h2>Prediction</h2>
 </div>
 
 

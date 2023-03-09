@@ -9,11 +9,15 @@ output: html_document
 library(caret)
 library(dplyr)
 library(randomForest)
+library(rattle)
+library(rpart)
 ```
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
+
+NOTE: all code can be found in chapter "Code"
 
 ## Task
 Predict the manner in which the participants of a study did barbell lifts based on a set of observations from different measurement devices.
@@ -58,29 +62,95 @@ df_features <- df_features %>%
 # split into training and test set
 inTrain <- createDataPartition(y = df_features$classe, p = .7, list = FALSE)
 df_myTraining <- df_features[inTrain,]
-df_myValidation  <- df_features[-inTrain,]
+df_myValidation <- df_features[-inTrain,]
 ```
 
 The given test data set has several columns with no information (NA), these are dropped. Then the same columns are dropped from the training data set. Within the training data set all empty values or values equal "#DIV/0!" are replaced by NA. Afterwards only the feature values are selected and columns are converted to correct data types. The final step is to divide the data into a training (70%) and a validation (30%) data set.
 The training and validation data sets have now `r ncol(df_myTraining)` columns (`r ncol(df_myTraining) - 1` features and the classification variable "classe"). 
 
-## Random Forest
+## Models
+
+In the following two models are applied to the training data set and the accuracy on the validation data set is calculated.
+
+### Classification Tree
+```{r classification, echo=FALSE}
+mod_classification <- train(classe ~ ., method = "rpart", data = df_myTraining)
+fancyRpartPlot(mod_classification$finalModel)
+pred_classification <- predict(mod_classification, df_myValidation)
+confMatrix_classification <- confusionMatrix(pred_classification, df_myValidation$classe)
+accuracy_classification <- confusionMatrix(pred_classification, df_myValidation$classe)$overall["Accuracy"]
+confMatrix_classification$table
+confMatrix_classification$overall
+```
+### Random Forest
 
 ```{r rf, echo=FALSE}
-#modFitRF <- train(classe ~ ., method = "rf", data = df_myTraining)
-
-
-
-
-
+mod_rf <- randomForest(classe ~ ., data = df_myTraining)
+pred_rf <- predict(mod_rf, df_myValidation)
+confMatrix_rf <- confusionMatrix(pred_rf, df_myValidation$classe)
+accuracy_rf <- confusionMatrix(pred_rf, df_myValidation$classe)$overall["Accuracy"]
+confMatrix_rf$table
+confMatrix_rf$overall
 ```
 
+### Comparison of models
+The accuracy of the classification tree is low (`r round(accuracy_classification, digits = 3)`) and as can be seen in the plot no tree results in classe = D. The random forest model performs much better with a high accuracy (`r round(accuracy_rf, digits = 3)`).
 
-## Prediction
-```{r prediction, echo=FALSE}
-#pred <- predict(modFit, df_myValidation)
+## Prediction on test data set
+Because of the better performance, the random forest model is chosen to be applied to the test data set.
+```{r prediction, echo=TRUE}
+pred_rf <- predict(mod_rf, df_test)
+pred_rf
+```
 
-#predictionsA1 <- predict(modFitA1, myTesting, type = "class")
-#confusionMatrix(predictionsA1, myTesting$classe)
+## Code
+```{r, echo=TRUE}
+# select relevant columns
+# remove all columns that have no data in the validation data set
+df_test <- df_test[,colSums(is.na(df_test))<nrow(df_test)]
+# get common column names
+dfList <- list(df, df_test)
+dfColList <- lapply(dfList,names)
+commonCols <- Reduce(intersect,dfColList)
+# keep only column names that are also in the validation data set
+df <- subset(df, select = c(append(commonCols, "classe")))
+# clean data
+df[df == "#DIV/0!"] <- NA
+df[df == ""] <- NA
+# extract features
+df_features <- subset(df, select = -c(X,
+                                      user_name,
+                                      raw_timestamp_part_1,
+                                      raw_timestamp_part_2,
+                                      cvtd_timestamp,
+                                      new_window,
+                                      num_window))
+# convert variable classe to factor
+df_features$classe <- factor(df_features$classe)
+# convert to numeric
+df_features <- df_features %>% 
+    mutate_if(is.character, as.numeric)
+# split into training and test set
+inTrain <- createDataPartition(y = df_features$classe, p = .7, list = FALSE)
+df_myTraining <- df_features[inTrain,]
+df_myValidation <- df_features[-inTrain,]
+```
 
+```{r, echo=TRUE}
+mod_classification <- train(classe ~ ., method = "rpart", data = df_myTraining)
+#fancyRpartPlot(mod_classification$finalModel)
+pred_classification <- predict(mod_classification, df_myValidation)
+confMatrix_classification <- confusionMatrix(pred_classification, df_myValidation$classe)
+accuracy_classification <- confusionMatrix(pred_classification, df_myValidation$classe)$overall["Accuracy"]
+#confMatrix_classification$table
+#confMatrix_classification$overall
+```
+
+```{r, echo=TRUE}
+mod_rf <- randomForest(classe ~ ., data = df_myTraining)
+pred_rf <- predict(mod_rf, df_myValidation)
+confMatrix_rf <- confusionMatrix(pred_rf, df_myValidation$classe)
+accuracy_rf <- confusionMatrix(pred_rf, df_myValidation$classe)$overall["Accuracy"]
+#confMatrix_rf$table
+#confMatrix_rf$overall
 ```

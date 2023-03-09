@@ -5,16 +5,80 @@ date: "2023-03-09"
 output: html_document
 ---
 
+```{r, echo = FALSE, results = 'hide', message = FALSE}
+library(caret)
+library(dplyr)
+library(randomForest)
+```
+
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## Title 1
+## Task
+Predict the manner in which the participants of a study did barbell lifts based on a set of observations from different measurement devices.
 
-This is my project
+## Data exploration
+
 ```{r loading_data, echo=FALSE}
-training <- read.csv(url("http://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv"), na.strings=c("NA","#DIV/0!",""))
+df <- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv")
+df_test <- read.csv("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv")
+classe_unique <- unique(df$classe)
+```
+The training data set contains data of 6 participants from accelerometers on the belt, forearm, arm, and dumbell. The participants had to do barbell lifts in 5 different incorrect ways, which are specified in the variable "classe" (A,B,C,D,E).
+
+## Cleaning the data
+The given test data set has several columns with no information (NA), these are dropped. Then the same columns are dropped from the training data set. Within the training data set all empty values or values equal "#DIV/0!" are replaced by NA. Afterwards only the feature values are selected and columns are converted to correct data types. The final step is to divide the training data into an individual training and test data set (don't confuse with the test data set given in the task which will be used to predict the classification).
+
+```{r cleaning_data, echo=FALSE}
+# select relevant columns
+# remove all columns that have no data in the validation data set
+df_test <- df_test[,colSums(is.na(df_test))<nrow(df_test)]
+# get common column names
+dfList <- list(df, df_test)
+dfColList <- lapply(dfList,names)
+commonCols <- Reduce(intersect,dfColList)
+# keep only column names that are also in the validation data set
+df <- subset(df, select = c(append(commonCols, "classe")))
+# clean data
+df[df == "#DIV/0!"] <- NA
+df[df == ""] <- NA
+# extract features
+df_features <- subset(df, select = -c(X,
+                                      user_name,
+                                      raw_timestamp_part_1,
+                                      raw_timestamp_part_2,
+                                      cvtd_timestamp,
+                                      new_window,
+                                      num_window))
+# convert variable classe to factor
+df_features$classe <- factor(df_features$classe)
+# convert to numeric
+df_features <- df_features %>% 
+    mutate_if(is.character, as.numeric)
+# split into training and test set
+inTrain <- createDataPartition(y = df_features$classe, p = .7, list = FALSE)
+df_myTraining <- df_features[inTrain,]
+df_myTesting  <- df_features[-inTrain,]
+```
+
+## Random Forest with all parameters
+
+```{r rf, echo=FALSE}
+modFit <- train(classe ~ ., method = "rf", data = df_myTraining)
+
+
+
+
+
 ```
 
 
+## Prediction
+```{r prediction, echo=FALSE}
+pred <- predict(modFit, df_test)
 
+#predictionsA1 <- predict(modFitA1, myTesting, type = "class")
+#confusionMatrix(predictionsA1, myTesting$classe)
+
+```
